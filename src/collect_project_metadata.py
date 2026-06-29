@@ -18,18 +18,19 @@ def get_project_metadata(project_id):
 
 def extract_metadata(project):
     stats = project.get("stats", {})
+    remix = project.get("remix", {})
+    author = project.get("author", {})
 
     return {
         "project_id": project.get("id"),
         "title": project.get("title", ""),
-        "author": project.get("author", {}).get("username", ""),
+        "author": author.get("username", ""),
         "views": stats.get("views", 0),
         "loves": stats.get("loves", 0),
         "favorites": stats.get("favorites", 0),
         "comments": stats.get("comments", 0),
-        "remix_count": project.get("remix", {}).get("count", 0),
+        "remix_count": remix.get("count", 0),
     }
-
 
 def main():
     sample = pd.read_csv(INPUT_FILE)
