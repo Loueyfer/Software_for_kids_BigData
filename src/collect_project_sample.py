@@ -1,21 +1,22 @@
 import csv
 import requests
+import time
 
 
-SEARCH_TERMS = ["game", "animation", "story", "music", "art"]
-PROJECT_LIMIT = 10
+SEARCH_TERMS = ["game", "animation", "story", "music", "tutorial"]
+PROJECTS_PER_TERM = 20
 
 OUTPUT_FILE = "data/project_sample.csv"
 
 
-def search_projects(query, limit=10):
+def search_projects(query, limit=20, offset=0):
     url = "https://api.scratch.mit.edu/search/projects"
 
     params = {
         "q": query,
         "mode": "popular",
         "limit": limit,
-        "offset": 0
+        "offset": offset,
     }
 
     response = requests.get(url, params=params, timeout=15)
@@ -31,32 +32,43 @@ def collect_sample():
     for term in SEARCH_TERMS:
         print(f"Searching projects for theme: {term}")
 
-        try:
-            projects = search_projects(term, limit=10)
-        except requests.RequestException as error:
-            print(f"Could not collect projects for {term}: {error}")
-            continue
+        term_count = 0
+        offset = 0
 
-        for project in projects:
-            project_id = project.get("id")
+        while term_count < PROJECTS_PER_TERM:
+            try:
+                projects = search_projects(term, limit=20, offset=offset)
+            except requests.RequestException as error:
+                print(f"Could not collect projects for {term}: {error}")
+                break
 
-            if project_id is None:
-                continue
+            if not projects:
+                break
 
-            if project_id in seen_ids:
-                continue
+            for project in projects:
+                project_id = project.get("id")
 
-            collected_projects.append({
-                "project_id": project_id,
-                "title": project.get("title", ""),
-                "theme": term,
-                "source": "scratch_search_popular"
-            })
+                if project_id is None:
+                    continue
 
-            seen_ids.add(project_id)
+                if project_id in seen_ids:
+                    continue
 
-            if len(collected_projects) >= PROJECT_LIMIT:
-                return collected_projects
+                collected_projects.append({
+                    "project_id": project_id,
+                    "title": project.get("title", ""),
+                    "theme": term,
+                    "source": "scratch_search_popular",
+                })
+
+                seen_ids.add(project_id)
+                term_count += 1
+
+                if term_count >= PROJECTS_PER_TERM:
+                    break
+
+            offset += 20
+            time.sleep(0.5)
 
     return collected_projects
 
